@@ -17,7 +17,7 @@ RUN mkdir -p /opt/nvidia/isaac_ros_dev_base && dpkg-query -W | sort > /opt/nvidi
 
 # disable terminal interaction for apt
 ENV DEBIAN_FRONTEND=noninteractive
-ENV SHELL /bin/bash
+ENV SHELL=/bin/bash
 SHELL ["/bin/bash", "-c"]
 
 # Ensure we have universe
@@ -60,7 +60,7 @@ apt-get update && apt-get install -y \
 
 # Python basics
 RUN --mount=type=cache,target=/var/cache/apt \
-apt-get update && apt-get install -y \
+	apt-get update && apt-get install -y \
         python3-pip \
         python3-pybind11 \
         python3-pytest \
@@ -122,21 +122,29 @@ RUN python3 -m pip install -U \
 
 # Install nvv4l2 for GXF Multimedia h264 codec
 RUN --mount=type=cache,target=/var/cache/apt \
-apt-get update && apt-get install -y \
-        nvv4l2 \
-&& ln -s /usr/lib/x86_64-linux-gnu/libnvcuvid.so.1 /usr/lib/x86_64-linux-gnu/libnvcuvid.so \
-&& ln -s /usr/lib/x86_64-linux-gnu/libnvidia-encode.so.1 /usr/lib/x86_64-linux-gnu/libnvidia-encode.so
+	apt-get update && apt-get install -y \
+			nvv4l2 \
+	&& ln -s /usr/lib/x86_64-linux-gnu/libnvcuvid.so.1 /usr/lib/x86_64-linux-gnu/libnvcuvid.so \
+	&& ln -s /usr/lib/x86_64-linux-gnu/libnvidia-encode.so.1 /usr/lib/x86_64-linux-gnu/libnvidia-encode.so
 
-# Install VPI packages
-ARG HAS_GPU="true"
-RUN --mount=type=cache,target=/var/cache/apt \
-    if [ "$HAS_GPU" = "true" ]; then \
-	set -e ; \
-        apt-key adv --fetch-key https://repo.download.nvidia.com/jetson/jetson-ota-public.asc ; \
-        add-apt-repository "deb http://repo.download.nvidia.com/jetson/x86_64/$(lsb_release -cs) r36.3 main" ; \
-        apt-get update ; \
-        apt-get install libnvvpi3 vpi3-dev ; \
-    fi
+# # Install VPI packages
+# ARG HAS_GPU="true"
+# RUN --mount=type=cache,target=/var/cache/apt \
+#     if [ "$HAS_GPU" = "true" ]; then \
+# 	set -e ; \
+#         apt-key adv --fetch-key https://repo.download.nvidia.com/jetson/jetson-ota-public.asc ; \
+#         add-apt-repository "deb http://repo.download.nvidia.com/jetson/x86_64/$(lsb_release -cs) r36.3 main" ; \
+#         apt-get update ; \
+#         apt-get install libnvvpi3 vpi3-dev ; \
+#     fi
+
+RUN curl -L https://repo.download.nvidia.com/jetson/jetson-ota-public.asc | apt-key add -
+
+# Install OTA packages...
+RUN echo "deb http://repo.download.nvidia.com/jetson/x86_64/$(lsb_release -cs) r36.3 main" > /etc/apt/sources.list.d/nvidia-l4t-apt-source.list
+
+RUN apt-get update && \
+    apt-get install libnvvpi3 vpi3-dev
 
 # Pytorch
 RUN python3 -m pip install -U --extra-index-url https://download.pytorch.org/whl/cu121 \
